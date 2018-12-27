@@ -8,7 +8,22 @@ class PlayArea extends StatefulWidget {
 }
 
 class PlayAreaState extends State<PlayArea> {
-  String _header = "THREE OF A KIND";
+  int _gameState = 0; // 0: ready/result, 1: hold
+  String _title = "GAME OVER";
+  Deck deck = Deck();
+  List<PlayCard> _hand;
+
+  @override
+  void initState() {
+    _hand = [
+      PlayCard.back(),
+      PlayCard.back(),
+      PlayCard.back(),
+      PlayCard.back(),
+      PlayCard.back(),
+    ];
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +31,7 @@ class PlayAreaState extends State<PlayArea> {
       children: <Widget>[
         Expanded(
           flex: 1,
-          child: Container(),
+          child: Divider(),
         ),
         Expanded(
           flex: 1,
@@ -38,7 +53,7 @@ class PlayAreaState extends State<PlayArea> {
     return FittedBox(
       fit: BoxFit.fitWidth,
       child: Text(
-        _header,
+        _title,
         style: TextStyle(
             color: Colors.red,
             fontWeight: FontWeight.bold,
@@ -56,31 +71,34 @@ class PlayAreaState extends State<PlayArea> {
   Widget _buildCardsArea() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        _buildSingleCard(PlayCard.randomCard()),
-        _buildSingleCard(PlayCard.randomCard()),
-        _buildSingleCard(PlayCard.randomCard()),
-        _buildSingleCard(PlayCard.randomCard()),
-        _buildSingleCard(PlayCard.randomCard()),
-      ],
+      children: _hand.map((card) => _buildSingleCard(card)).toList(),
     );
   }
 
   Widget _buildSingleCard(card) {
     return Expanded(
-      child: FittedBox(
-        fit: BoxFit.fill,
-        child: Column(
-          children: <Widget>[
-            Text(
-              "HOLD",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 30),
-            ),
-            Image.asset(card.src),
-          ],
+      child: GestureDetector(
+        onTap: () {
+          if (_gameState == 1) {
+            setState(() {
+              card.hold = !card.hold;
+            });
+          }
+        },
+        child: FittedBox(
+          fit: BoxFit.fill,
+          child: Column(
+            children: <Widget>[
+              Text(
+                card.hold ? 'HOLD' : ' ',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 30),
+              ),
+              Image.asset(card.src),
+            ],
+          ),
         ),
       ),
     );
@@ -103,7 +121,7 @@ class PlayAreaState extends State<PlayArea> {
                 valueListenable: wager,
                 builder: (context, value, child) {
                   return Text(
-                    "BET ${wager.value}",
+                    "BET $value",
                     style: TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.bold,
@@ -121,16 +139,45 @@ class PlayAreaState extends State<PlayArea> {
           ),
         ),
         Expanded(
-          child: Container(
-            height: 60,
-            color: Colors.yellow,
-            alignment: Alignment.center,
-            child: Text(
-              "DRAW",
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+          child: GestureDetector(
+            onTap: () {
+              switch (_gameState) {
+                case 0:
+                  credits.value -= wager.value;
+                  for (int i = 0; i < 5; i++) {
+                    _hand[i] = deck.pop();
+                  }
+                  _title = ' ';
+                  _gameState = 1;
+                  break;
+                case 1:
+                  for (int i = 0; i < 5; i++) {
+                    if (!_hand[i].hold) {
+                      _hand[i] = deck.pop();
+                    }
+                  }
+                  var result = calcPayout(_hand);
+                  _title =
+                      '${result[0]}${result[1] > 0 ? ' (${result[1]})' : ''}';
+                  credits.value += result[1];
+                  deck.shuffle();
+                  _gameState = 0;
+                  break;
+              }
+
+              setState(() {});
+            },
+            child: Container(
+              height: 60,
+              color: Colors.yellow,
+              alignment: Alignment.center,
+              child: Text(
+                "DRAW",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
               ),
             ),
           ),
@@ -139,18 +186,23 @@ class PlayAreaState extends State<PlayArea> {
           child: Container(
             height: 60,
             alignment: Alignment.centerRight,
-            child: Text(
-              "CREDITS 433",
-              style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  shadows: [
-                    Shadow(offset: Offset(-1, -1), color: Colors.yellow),
-                    Shadow(offset: Offset(-1, 1), color: Colors.yellow),
-                    Shadow(offset: Offset(1, 1), color: Colors.yellow),
-                    Shadow(offset: Offset(1, -1), color: Colors.yellow),
-                  ]),
+            child: ValueListenableBuilder(
+              valueListenable: credits,
+              builder: (context, value, _) {
+                return Text(
+                  "CREDITS $value",
+                  style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      shadows: [
+                        Shadow(offset: Offset(-1, -1), color: Colors.yellow),
+                        Shadow(offset: Offset(-1, 1), color: Colors.yellow),
+                        Shadow(offset: Offset(1, 1), color: Colors.yellow),
+                        Shadow(offset: Offset(1, -1), color: Colors.yellow),
+                      ]),
+                );
+              },
             ),
           ),
         ),

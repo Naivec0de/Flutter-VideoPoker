@@ -13,6 +13,7 @@ import 'package:video_poker/main.dart';
 
 void main() {
   test('Generate asset file name for cards', () {
+    expect(PlayCard.back().src, "assets/back.png");
     expect(PlayCard(1, 1).src, "assets/cards/card1a.png");
     expect(PlayCard(2, 2).src, "assets/cards/card22.png");
     expect(PlayCard(5, 3).src, "assets/cards/card35.png");
