@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_poker/card.dart';
+import 'package:video_poker/global.dart';
 
 void main() => runApp(MyApp());
 
@@ -17,14 +18,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class PayoutTable extends StatefulWidget {
-  @override
-  State createState() => PayoutTableState();
-}
-
-class PayoutTableState extends State<PayoutTable> {
-  int _highlight = 1;
-
+class PayoutTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const names = [
@@ -64,21 +58,17 @@ class PayoutTableState extends State<PayoutTable> {
     return GestureDetector(
       onTap: () {
         if (id != 0) {
-          setState(() {
-            _highlight = id;
-          });
+          wager.value = id;
         }
       },
-      child: Container(
-        decoration: BoxDecoration(color: Colors.yellow),
+      child: ValueListenableBuilder(
+        valueListenable: wager,
         child: Column(
           children: content.map((text) {
             return Container(
               alignment: alignment,
-              color: id == _highlight ? Colors.red : Colors.grey,
               height: 20,
               width: width,
-              margin: EdgeInsets.only(left: 1, right: 1),
               child: Text(
                 text,
                 style: TextStyle(color: Colors.yellow),
@@ -86,6 +76,15 @@ class PayoutTableState extends State<PayoutTable> {
             );
           }).toList(),
         ),
+        builder: (context, value, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: id == wager.value ? Colors.red : Colors.grey,
+              border: Border.all(color: Colors.yellow),
+            ),
+            child: child,
+          );
+        },
       ),
     );
   }
@@ -180,21 +179,32 @@ class PlayAreaState extends State<PlayArea> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Expanded(
-          child: Container(
-            height: 60,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "BET 5",
-              style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  shadows: [
-                    Shadow(offset: Offset(-1, -1), color: Colors.yellow),
-                    Shadow(offset: Offset(-1, 1), color: Colors.yellow),
-                    Shadow(offset: Offset(1, 1), color: Colors.yellow),
-                    Shadow(offset: Offset(1, -1), color: Colors.yellow),
-                  ]),
+          child: GestureDetector(
+            onTap: () {
+              wager.value++;
+              if (wager.value > 5) wager.value = 1;
+            },
+            child: Container(
+              height: 60,
+              alignment: Alignment.centerLeft,
+              child: ValueListenableBuilder(
+                valueListenable: wager,
+                builder: (context, value, child) {
+                  return Text(
+                    "BET ${wager.value}",
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        shadows: [
+                          Shadow(offset: Offset(-1, -1), color: Colors.yellow),
+                          Shadow(offset: Offset(-1, 1), color: Colors.yellow),
+                          Shadow(offset: Offset(1, 1), color: Colors.yellow),
+                          Shadow(offset: Offset(1, -1), color: Colors.yellow),
+                        ]),
+                  );
+                },
+              ),
             ),
           ),
         ),
